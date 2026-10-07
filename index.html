@@ -174,9 +174,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
     <button class="back" id="back">← 목록</button>
     <div class="ptitle"><b id="pTitle"></b><span id="pCat"></span></div>
     <div class="seg engines" role="group" aria-label="시뮬레이션 엔진">
-      <button data-m="botrail" aria-pressed="true">botrail</button>
-      <button data-m="mujoco">MuJoCo</button>
-      <button data-m="isaac">Isaac Sim</button>
+      <button data-m="mujoco" aria-pressed="true">MuJoCo</button>
     </div>
     <button class="v3d" id="v3d" aria-pressed="false" title="인터랙티브 3D · 계획 대비 편차 히트맵">3D 분석</button>
     <button class="propbtn" id="propOpen" title="사이클타임·처리량·ROI 제안서 (링크 공유·PDF)">제안서</button>
@@ -236,7 +234,7 @@ import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-const BUILD = "20261007200643";  // 배포 때 바뀜 → 브라우저·CDN 캐시에 남은 옛 데이터를 쓰지 않게
+const BUILD = "20261007210518";  // 배포 때 바뀜 → 브라우저·CDN 캐시에 남은 옛 데이터를 쓰지 않게
 const INDEX = await fetch(`data/index.json?v=${BUILD}`, {cache: "no-cache"}).then(r => r.json());
 const items = INDEX.items, ready = items.filter(x => x.ready);
 
@@ -291,8 +289,12 @@ camera.up.set(0, 0, 1);
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 let scene = null, rec = null, t = 0, playing = false, speed = 1, last = performance.now(), loadToken = 0;
-let mode = "botrail";
-try { mode = localStorage.getItem("engine") || "botrail"; } catch {}
+let mode = "mujoco";
+try { mode = localStorage.getItem("engine") || "mujoco"; } catch {}
+{ const qe = new URLSearchParams(location.search).get("eng"); if (["botrail","mujoco","isaac"].includes(qe)) mode = qe; }  // ?eng=mujoco (live_engines)
+if (new URLSearchParams(location.search).get("embed")) {  // ?embed=1 → 상단 바 숨김 (live_engines iframe 용)
+  const s = document.createElement("style"); s.textContent = ".ptop{display:none!important}"; document.head.appendChild(s);
+}
 const ENGINE = {botrail: "botrail", mujoco: "MuJoCo", isaac: "Isaac Sim"};
 
 function stageColor() { return new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue("--stage").trim() || "#e4e8ec"); }
@@ -473,7 +475,7 @@ function resultFor(x, m) {
   return [x.level, x.label, x.summary];
 }
 function setMode(m) {
-  if (!available(m)) m = ["botrail", "mujoco", "isaac"].find(available) || "botrail";
+  if (!available(m)) m = ["mujoco", "botrail", "isaac"].find(available) || "mujoco";
   const changed = m !== mode || vid.dataset.item !== cur?.id;
   mode = m;
   try { localStorage.setItem("engine", m); } catch {}
@@ -553,7 +555,8 @@ async function openItem(x, push = true) {
   $("v3d").disabled = !x.ready;
   $("loading").hidden = true;
   const hasVideo = !!(x.videos && Object.keys(x.videos).length);
-  await set3D(!hasVideo);  // 기본: 엔진 자체 렌더 영상(엔진별로 다른 화면). 영상 없으면 3D 분석
+  const force3d = new URLSearchParams(location.search).get("3d");  // ?3d=1 → 3D 분석으로 바로 (live_engines MuJoCo 뷰)
+  await set3D(force3d ? true : !hasVideo);  // 기본: 엔진 자체 렌더 영상. 영상 없으면/강제면 3D 분석
   resize();
   setTimeout(() => cur === x && setPlaying(true), 300);
 }
