@@ -55,6 +55,7 @@ header p{margin:6px 0 0;color:var(--ink-2);font-size:15px;line-height:1.6;max-wi
 .pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
 .pill.good{color:var(--good);background:color-mix(in srgb,var(--good) 12%,transparent)}
 .pill.check{color:var(--check);background:color-mix(in srgb,var(--check) 14%,transparent)}
+.pill.plan{color:var(--ink-2);background:color-mix(in srgb,var(--ink-2) 12%,transparent)}
 .later{border-top:1px solid var(--line);padding-top:16px}
 .later summary{cursor:pointer;color:var(--ink-2);font-size:14px}
 .later ul{list-style:none;padding:0;margin:12px 0 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px 18px}
@@ -86,13 +87,13 @@ footer code{font-family:var(--mono);font-size:12px}
 .seek{flex:1;min-width:0;accent-color:var(--accent)}
 .time{font-family:var(--mono);font-size:13px;color:var(--ink-2);white-space:nowrap}
 .speed{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer;flex:none}
-.modes{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.engines{margin-left:auto;flex:none}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--bg)}
 .seg button{border:0;background:transparent;color:var(--ink-2);font:inherit;font-size:13.5px;padding:6px 14px;border-radius:999px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .seg button:disabled{opacity:.4;cursor:not-allowed}
-.modes .note{font-size:12.5px;color:var(--ink-2);flex:1;min-width:200px}
-.swatch{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:3px}
+@media (max-width:640px){.ptop{flex-wrap:wrap}.engines{margin-left:0;width:100%}.engines button{flex:1}}
+.engname{font-size:12px;color:var(--ink-2);font-weight:500}
 .result{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
 .result p{margin:0;font-size:14px;line-height:1.55;color:var(--ink);flex:1;min-width:220px}
 .more{font-size:13px;color:var(--ink-2)}
@@ -108,7 +109,7 @@ footer code{font-family:var(--mono);font-size:12px}
 <div class="wrap">
   <header>
     <h1>로봇 공정 시뮬레이션 갤러리</h1>
-    <p>botrail로 설계한 로봇 셀을 MuJoCo 물리 엔진에서 다시 돌려 본 결과입니다. 카드를 누르면 3D로 재생되고, 손가락이나 마우스로 돌려 볼 수 있어요.</p>
+    <p>botrail로 설계한 로봇 셀을 MuJoCo와 Isaac Sim 물리 엔진에서 다시 돌려 본 결과입니다. 카드를 누르면 3D로 재생되고, 위쪽 버튼으로 botrail 계획 · MuJoCo · Isaac Sim을 바꿔 볼 수 있어요.</p>
     <div class="stats" id="stats"></div>
   </header>
   <nav class="chips" id="chips" aria-label="공정 분야"></nav>
@@ -136,6 +137,11 @@ footer code{font-family:var(--mono);font-size:12px}
   <div class="ptop">
     <button class="back" id="back">← 목록</button>
     <div class="ptitle"><b id="pTitle"></b><span id="pCat"></span></div>
+    <div class="seg engines" role="group" aria-label="시뮬레이션 엔진">
+      <button data-m="botrail">botrail</button>
+      <button data-m="mujoco" aria-pressed="true">MuJoCo</button>
+      <button data-m="isaac">Isaac Sim</button>
+    </div>
   </div>
   <div class="stage" id="stage">
     <canvas id="c"></canvas>
@@ -148,14 +154,6 @@ footer code{font-family:var(--mono);font-size:12px}
       <input class="seek" id="seek" type="range" min="0" max="1000" value="0" aria-label="재생 위치">
       <span class="time" id="time">0.0 / 0.0초</span>
       <button class="speed" id="speed" aria-label="재생 속도">1배</button>
-    </div>
-    <div class="modes">
-      <div class="seg" role="group" aria-label="보는 방식">
-        <button id="mBot" data-m="botrail">botrail 계획</button>
-        <button id="mMj" data-m="mujoco" aria-pressed="true">MuJoCo 물리</button>
-        <button id="mBoth" data-m="both">겹쳐 보기</button>
-      </div>
-      <span class="note" id="modeNote"></span>
     </div>
     <div class="result"><span class="pill" id="pPill"></span><p id="pSummary"></p></div>
     <details class="more" id="more"><summary>자세히</summary><div class="box" id="moreBox"></div></details>
@@ -217,12 +215,8 @@ const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 let scene = null, rec = null, t = 0, playing = false, speed = 1, last = performance.now(), loadToken = 0;
 let mode = "mujoco";
-try { mode = localStorage.getItem("viewMode") || "mujoco"; } catch {}
-const NOTES = {
-  botrail: "botrail이 계획한 동작 그대로예요 (무게·모터·충돌 같은 물리는 없음).",
-  mujoco: "MuJoCo가 무게·관성·모터 한계를 넣어 계산한, 실제에 가까운 동작이에요.",
-  both: '<span class="swatch" style="background:#ff7a1a;opacity:.6"></span>주황 반투명 = botrail 계획 · 실제 색 = MuJoCo 물리. 둘이 어긋나는 곳이 차이예요.',
-};
+try { mode = localStorage.getItem("engine") || "mujoco"; } catch {}
+const ENGINE = {botrail: "botrail", mujoco: "MuJoCo", isaac: "Isaac Sim"};
 
 function stageColor() { return new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue("--stage").trim() || "#e4e8ec"); }
 
@@ -267,18 +261,7 @@ function buildScene(meta, bin) {
   for (const [b, st] of Object.entries(meta.static)) {
     body(b).position.fromArray(st.p); body(b).quaternion.set(st.q[1], st.q[2], st.q[3], st.q[0]);
   }
-  // 겹쳐 보기용 반투명 복제 (botrail 계획에서 움직이는 바디만)
-  const ghosts = {};
-  if (meta.plan) {
-    const gm = new THREE.MeshBasicMaterial({color: 0xff7a1a, transparent: true, opacity: .32, depthWrite: false});
-    for (const b of meta.plan.moving) {
-      const src = bodies[b]; if (!src || !src.children.length) continue;
-      const g = new THREE.Group();
-      src.children.forEach(m => { const c = new THREE.Mesh(m.geometry, gm); c.position.copy(m.position); c.quaternion.copy(m.quaternion); c.renderOrder = 2; g.add(c); });
-      g.visible = false; sc.add(g); ghosts[b] = g;
-    }
-  }
-  return {sc, bodies, sun, ghosts};
+  return {sc, bodies, sun};
 }
 
 function frame(sc, sun) {
@@ -320,30 +303,56 @@ function applyStatic(targets, stat) {
     o.position.fromArray(st.p); o.quaternion.set(st.q[1], st.q[2], st.q[3], st.q[0]);
   }
 }
+function track(m) {  // 엔진별 재생 트랙
+  const meta = rec.meta;
+  if (m === "botrail" && meta.plan) return {d: meta.plan, P: rec.tracks.plan.P, Q: rec.tracks.plan.Q};
+  if (m === "isaac" && meta.isaac) return {d: meta.isaac, P: rec.tracks.isaac.P, Q: rec.tracks.isaac.Q};
+  return {d: meta, P: rec.P, Q: rec.Q};
+}
 function pose() {
   const {meta} = rec, T = meta.t, N = T.length;
   const [i, a] = frameIndex(T);
-  const usePlan = mode === "botrail" && rec.PP;
-  if (usePlan) applyTrack(rec.bodies, meta.plan.moving, rec.PP, rec.PQ, i, a);
-  else applyTrack(rec.bodies, meta.moving, rec.P, rec.Q, i, a);
-  if (rec.PP && mode === "both") applyTrack(rec.ghosts, meta.plan.moving, rec.PP, rec.PQ, i, a);
+  const tr = track(mode);
+  applyTrack(rec.bodies, tr.d.moving, tr.P, tr.Q, i, a);
   $("time").textContent = `${t.toFixed(1)} / ${T[N - 1].toFixed(1)}초`;
   $("seek").value = Math.round(t / T[N - 1] * 1000);
 }
+function available(m) {
+  if (!rec) return true;
+  return m === "mujoco" || (m === "botrail" && !!rec.meta.plan) || (m === "isaac" && !!rec.meta.isaac);
+}
+function resultFor(x, m) {
+  if (m === "botrail") return ["plan", "계획", "botrail이 계획한 동작 그대로예요. 무게·모터·충돌 같은 물리는 계산하지 않아요."];
+  if (m === "isaac") {
+    const is = x.isaac || {};
+    if (!is.supported) return ["check", "준비 중", is.reason || "Isaac Sim 결과가 아직 없어요."];
+    const ok = is.max_joint_err_deg < 1.0;
+    return [ok ? "good" : "check", ok ? "잘 따라가요" : "차이 확인 필요",
+      `Isaac Sim(PhysX)에서 같은 계획을 따라가게 했더니 관절 각도 차이가 최대 ${is.max_joint_err_deg}°였어요.` +
+      (ok ? "" : " 로봇 모델의 무게·모터 정보가 실제와 다를 수 있어요.")];
+  }
+  return [x.level, x.label, x.summary];
+}
 function setMode(m) {
-  if (rec && !rec.PP && m !== "mujoco") m = "mujoco";
+  if (!available(m)) m = "mujoco";
   mode = m;
-  try { localStorage.setItem("viewMode", m); } catch {}
-  document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.m === m)));
-  $("modeNote").innerHTML = NOTES[m];
-  if (rec) {
-    // 데이터셋을 바꿀 때 한쪽에서만 움직이는 바디는 그쪽의 고정 위치로 되돌린다
-    applyStatic(rec.bodies, m === "botrail" && rec.PP ? rec.meta.plan.static : rec.meta.static);
-    Object.values(rec.ghosts).forEach(g => g.visible = m === "both");
+  try { localStorage.setItem("engine", m); } catch {}
+  document.querySelectorAll(".engines button").forEach(b => {
+    b.setAttribute("aria-pressed", String(b.dataset.m === m));
+    b.disabled = !available(b.dataset.m);
+    b.title = b.disabled ? (b.dataset.m === "isaac" ? (cur?.isaac?.reason || "Isaac Sim 결과가 아직 없어요") : "이 예제에는 결과가 없어요") : "";
+  });
+  if (cur) {
+    const [lv, lb, txt] = resultFor(cur, m);
+    $("pPill").className = "pill " + lv; $("pPill").textContent = lb;
+    $("pSummary").innerHTML = `<span class="engname">${ENGINE[m]}</span> · ` + esc(txt);
+  }
+  if (rec) {  // 엔진을 바꿀 때 한쪽에서만 움직이는 바디는 그 엔진의 고정 위치로
+    applyStatic(rec.bodies, track(m).d.static || rec.meta.static);
     pose();
   }
 }
-document.querySelectorAll(".seg button").forEach(b => b.onclick = () => setMode(b.dataset.m));
+document.querySelectorAll(".engines button").forEach(b => b.onclick = () => setMode(b.dataset.m));
 
 function b64(text) {  // 재생 데이터는 base64 텍스트로 배포된다
   const s = atob(text.trim()), u = new Uint8Array(s.length);
@@ -357,6 +366,7 @@ function details(x) {
   const d = x.detail, parts = [];
   parts.push(`<div><h4>추종 정확도</h4><ul><li>계획 경로와의 차이: 평균 <span class="mono">${d.mean_tcp_err_mm} mm</span>, 최대 <span class="mono">${d.max_tcp_err_mm} mm</span></li>` +
     `<li>사이클 <span class="mono">${x.cycle_s.toFixed(1)}초</span> · 로봇 ${x.robots}대${x.mobile ? " · 이동 로봇 포함" : ""} · 재생 ${x.fps}fps</li></ul></div>`);
+  if (x.isaac) parts.push(`<div><h4>Isaac Sim</h4><ul><li>${x.isaac.supported ? `관절 각도 차이 최대 <span class="mono">${x.isaac.max_joint_err_deg}°</span> (PhysX, 120 Hz)` : esc(x.isaac.reason)}</li></ul></div>`);
   const coll = Object.entries(d.collisions || {});
   if (coll.length) parts.push(`<div><h4>겹친 곳</h4><ul>${coll.map(([k, v]) => `<li>${esc(k)} — <span class="mono">${v.max_depth_mm} mm</span>, ${v.t.slice(0, 3).join(", ")}초</li>`).join("")}</ul></div>`);
   const tq = Object.entries(d.torque || {}).flatMap(([r, js]) => Object.entries(js).map(([j, v]) => [r, j, v])).sort((a, b) => b[2].ratio - a[2].ratio).slice(0, 4);
@@ -367,7 +377,7 @@ function details(x) {
 }
 
 // 뒤로가기: 플레이어를 열 때 기록을 하나 쌓고, 뒤로가기(popstate)로 닫는다 → 페이지를 나가지 않음
-let pushed = false;
+let pushed = false, cur = null;
 async function openItem(x, push = true) {
   if (!x) return;
   const token = ++loadToken;
@@ -375,7 +385,7 @@ async function openItem(x, push = true) {
   document.body.style.overflow = "hidden";
   if (push) { try { history.pushState({id: x.id}, "", "#" + x.id); pushed = true; } catch {} }
   $("pTitle").textContent = x.title; $("pCat").textContent = x.category;
-  $("pPill").className = "pill " + x.level; $("pPill").textContent = x.label; $("pSummary").textContent = x.summary;
+  cur = x; rec = null; setMode(mode);
   $("moreBox").innerHTML = details(x); $("more").open = false;
   $("loading").hidden = false; setPlaying(false); rec = null; t = 0;
   resize();
@@ -385,11 +395,9 @@ async function openItem(x, push = true) {
   if (scene) scene.traverse(o => { if (o.isMesh && o.geometry && !o.geometry.isShared) o.geometry.dispose(); });
   const built = buildScene(meta, bin);
   scene = built.sc;
-  rec = {meta, bodies: built.bodies, ghosts: built.ghosts,
-         P: new Float32Array(bin, meta.pos[0], meta.pos[1]), Q: new Float32Array(bin, meta.quat[0], meta.quat[1]),
-         PP: meta.plan ? new Float32Array(bin, meta.plan.pos[0], meta.plan.pos[1]) : null,
-         PQ: meta.plan ? new Float32Array(bin, meta.plan.quat[0], meta.plan.quat[1]) : null};
-  document.querySelectorAll("#mBot, #mBoth").forEach(b => b.disabled = !rec.PP);
+  const arrs = d => d ? {P: new Float32Array(bin, d.pos[0], d.pos[1]), Q: new Float32Array(bin, d.quat[0], d.quat[1])} : null;
+  rec = {meta, bodies: built.bodies, P: new Float32Array(bin, meta.pos[0], meta.pos[1]),
+         Q: new Float32Array(bin, meta.quat[0], meta.quat[1]), tracks: {plan: arrs(meta.plan), isaac: arrs(meta.isaac)}};
   setMode(mode); frame(scene, built.sun);
   $("loading").hidden = true;
   setTimeout(() => token === loadToken && setPlaying(true), 400);
