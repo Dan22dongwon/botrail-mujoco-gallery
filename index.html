@@ -166,7 +166,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
     <div><b>파라미터 실험</b><span>페이로드 · 적분 dt · 토크 한계 on/off (CLI)</span></div>
   </section>
   <main id="rows" style="display:flex;flex-direction:column;gap:26px"></main>
-  <footer><code>botrail-mujoco</code> (비공식 어댑터) · 셀 설계·계획 궤적은 <b>botrail</b>, 물리 재현·교차검증은 본 어댑터 · 원본 셀: botrail 0.13 예제 · MuJoCo 1 kHz · Isaac Sim/PhysX ≈120 Hz</footer>
+  <footer><a href="https://github.com/Dan22dongwon/botrail-mujoco-adapter" target="_blank">코드 (GitHub)</a> · <code>botrail-mujoco</code> (비공식 어댑터) · 셀 설계·계획 궤적은 <b>botrail</b>, 물리 재현·교차검증은 본 어댑터 · 원본 셀: botrail 0.13 예제 · MuJoCo 1 kHz · Isaac Sim/PhysX ≈120 Hz</footer>
 </div>
 
 <section class="player" id="player" hidden aria-label="3D 재생">
@@ -236,7 +236,7 @@ import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-const BUILD = "20261007212641";  // 배포 때 바뀜 → 브라우저·CDN 캐시에 남은 옛 데이터를 쓰지 않게
+const BUILD = "20261007213510";  // 배포 때 바뀜 → 브라우저·CDN 캐시에 남은 옛 데이터를 쓰지 않게
 const INDEX = await fetch(`data/index.json?v=${BUILD}`, {cache: "no-cache"}).then(r => r.json());
 const items = INDEX.items, ready = items.filter(x => x.ready);
 
