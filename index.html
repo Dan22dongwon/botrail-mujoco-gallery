@@ -75,7 +75,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
 .player[hidden]{display:none}
 .ptop{display:flex;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;border-bottom:1px solid var(--line);background:var(--surface)}
 .back{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:7px 14px;font:inherit;font-size:14px;cursor:pointer}
-.ptitle{min-width:0}
+.ptitle{min-width:0;flex:1 1 auto;margin-right:14px}
 .ptitle b{display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ptitle span{font-size:12.5px;color:var(--ink-2)}
 .stage{position:relative;min-height:0;background:var(--stage)}
@@ -98,7 +98,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
 .seg button{border:0;background:transparent;color:var(--ink-2);font:inherit;font-size:13.5px;padding:6px 14px;border-radius:999px;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .seg button:disabled{opacity:.4;cursor:not-allowed}
-@media (max-width:640px){.ptop{flex-wrap:wrap}.engines{margin-left:0;flex:1}.engines button{flex:1;padding-inline:8px}}
+@media (max-width:820px){.ptop{flex-wrap:wrap}.ptitle{flex:1 0 100%;margin-right:0}.engines{margin-left:0;flex:1}.engines button{flex:1;padding-inline:8px}}
 .engname{font-size:12px;color:var(--ink-2);font-weight:500}
 .diffbox{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--ink-2);white-space:nowrap;cursor:pointer}
 .diffnow{font-family:var(--mono);font-size:13px;color:var(--ink)}
@@ -239,7 +239,7 @@ import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-const BUILD = "20261007223918";  // 배포 때 바뀜 → 브라우저·CDN 캐시에 남은 옛 데이터를 쓰지 않게
+const BUILD = "20261007224630";  // 배포 때 바뀜 → 브라우저·CDN 캐시에 남은 옛 데이터를 쓰지 않게
 const INDEX = await fetch(`data/index.json?v=${BUILD}`, {cache: "no-cache"}).then(r => r.json());
 const HIDE_CAT = new Set(["그리핑", "셀 엔지니어링", "강화학습", "Export"]);  // DM 용: 공정과 거리 먼 카테고리 숨김
 const items = INDEX.items.filter(x => !HIDE_CAT.has(x.category)), ready = items.filter(x => x.ready);
