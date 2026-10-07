@@ -94,6 +94,10 @@ footer code{font-family:var(--mono);font-size:12px}
 .seg button:disabled{opacity:.4;cursor:not-allowed}
 @media (max-width:640px){.ptop{flex-wrap:wrap}.engines{margin-left:0;width:100%}.engines button{flex:1}}
 .engname{font-size:12px;color:var(--ink-2);font-weight:500}
+.diffbox{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--ink-2);white-space:nowrap;cursor:pointer}
+.diffnow{font-family:var(--mono);font-size:13px;color:var(--ink)}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink-2)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
 .result{display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap}
 .result p{margin:0;font-size:14px;line-height:1.55;color:var(--ink);flex:1;min-width:220px}
 .more{font-size:13px;color:var(--ink-2)}
@@ -102,7 +106,7 @@ footer code{font-family:var(--mono);font-size:12px}
 .more h4{margin:0 0 4px;font-size:12.5px;color:var(--ink);font-weight:600}
 .more ul{margin:0;padding-left:18px;line-height:1.55}
 .more .mono{font-family:var(--mono)}
-@media (max-width:560px){.time{display:none}}
+@media (max-width:560px){.time{display:none}.diffbox{font-size:12px}}
 @media (prefers-reduced-motion:reduce){.card{transition:none}.card:hover{transform:none}}
 </style>
 
@@ -153,9 +157,14 @@ footer code{font-family:var(--mono);font-size:12px}
       <button class="play" id="play" aria-label="재생">▶</button>
       <input class="seek" id="seek" type="range" min="0" max="1000" value="0" aria-label="재생 위치">
       <span class="time" id="time">0.0 / 0.0초</span>
+      <label class="diffbox" id="diffBox" title="botrail 계획과 어긋난 부품을 색으로 표시"><input type="checkbox" id="diffOn"> 차이 색칠</label>
       <button class="speed" id="speed" aria-label="재생 속도">1배</button>
     </div>
     <div class="result"><span class="pill" id="pPill"></span><p id="pSummary"></p></div>
+    <div class="legend" id="legend" hidden>
+      <span class="diffnow" id="diffNow"></span>
+      <span><i style="background:#39a6ff"></i>1–5 mm</span><span><i style="background:#ff8a1f"></i>5–20 mm</span><span><i style="background:#e23a2e"></i>20 mm 이상</span>
+    </div>
     <details class="more" id="more"><summary>자세히</summary><div class="box" id="moreBox"></div></details>
   </div>
 </section>
@@ -305,15 +314,50 @@ function applyStatic(targets, stat) {
 }
 function track(m) {  // 엔진별 재생 트랙
   const meta = rec.meta;
-  if (m === "botrail" && meta.plan) return {d: meta.plan, P: rec.tracks.plan.P, Q: rec.tracks.plan.Q};
-  if (m === "isaac" && meta.isaac) return {d: meta.isaac, P: rec.tracks.isaac.P, Q: rec.tracks.isaac.Q};
-  return {d: meta, P: rec.P, Q: rec.Q};
+  if (m === "botrail" && meta.plan) return {d: meta.plan, ...rec.tracks.plan};
+  if (m === "isaac" && meta.isaac) return {d: meta.isaac, ...rec.tracks.isaac};
+  return {d: meta, P: rec.P, Q: rec.Q, idx: rec.idx};
 }
+// 계획(botrail)과 고른 엔진의 바디 위치 차이: 실시간 숫자 + 부품 색칠
+const LEVELS = [[0.001, null], [0.005, 0x39a6ff], [0.020, 0xff8a1f], [Infinity, 0xe23a2e]];
+const levelMats = {};
+function levelOf(d) { for (let k = 0; k < LEVELS.length; k++) if (d < LEVELS[k][0]) return k; return LEVELS.length - 1; }
+function matFor(k) { return levelMats[k] ??= new THREE.MeshStandardMaterial({color: LEVELS[k][1], roughness: .5}); }
+function bodyPos(d, P, idxMap, b, i, a) {
+  const k = idxMap.get(b); if (k === undefined) return null;
+  const nb = d.moving.length, p0 = (i * nb + k) * 3, p1 = ((i + 1) * nb + k) * 3;
+  return [P[p0] + a * (P[p1] - P[p0]), P[p0 + 1] + a * (P[p1 + 1] - P[p0 + 1]), P[p0 + 2] + a * (P[p1 + 2] - P[p0 + 2])];
+}
+function updateDiff(i, a) {
+  const on = $("diffOn").checked && mode !== "botrail" && rec.meta.plan;
+  $("legend").hidden = mode === "botrail" || !rec.meta.plan;
+  if (!rec.meta.plan || mode === "botrail") { colour(null); return; }
+  const tr = track(mode), plan = rec.meta.plan;
+  let worst = 0; const per = {};
+  for (const b of rec.diffBodies) {
+    const pe = bodyPos(tr.d, tr.P, tr.idx, b, i, a), pp = bodyPos(plan, rec.tracks.plan.P, rec.tracks.plan.idx, b, i, a);
+    if (!pe || !pp) continue;
+    const dist = Math.hypot(pe[0] - pp[0], pe[1] - pp[1], pe[2] - pp[2]);
+    per[b] = dist; if (dist > worst) worst = dist;
+  }
+  $("diffNow").textContent = `지금 계획과 차이 최대 ${(worst * 1000).toFixed(1)} mm`;
+  colour(on ? per : null);
+}
+function colour(per) {
+  for (const [b, g] of Object.entries(rec.bodies)) {
+    const k = per && per[b] !== undefined ? levelOf(per[b]) : 0;
+    if (g.userData.lv === k) continue;
+    g.userData.lv = k;
+    g.children.forEach(m => { m.userData.orig ??= m.material; m.material = k ? matFor(k) : m.userData.orig; });
+  }
+}
+
 function pose() {
   const {meta} = rec, T = meta.t, N = T.length;
   const [i, a] = frameIndex(T);
   const tr = track(mode);
   applyTrack(rec.bodies, tr.d.moving, tr.P, tr.Q, i, a);
+  updateDiff(i, a);
   $("time").textContent = `${t.toFixed(1)} / ${T[N - 1].toFixed(1)}초`;
   $("seek").value = Math.round(t / T[N - 1] * 1000);
 }
@@ -353,6 +397,9 @@ function setMode(m) {
   }
 }
 document.querySelectorAll(".engines button").forEach(b => b.onclick = () => setMode(b.dataset.m));
+$("diffOn").onchange = () => { try { localStorage.setItem("diffOn", $("diffOn").checked ? "1" : "0"); } catch {} if (rec) pose(); };
+$("diffOn").checked = true;  // 기본: 켜짐 (끈 사람은 기억)
+try { if (localStorage.getItem("diffOn") === "0") $("diffOn").checked = false; } catch {}
 
 function b64(text) {  // 재생 데이터는 base64 텍스트로 배포된다
   const s = atob(text.trim()), u = new Uint8Array(s.length);
@@ -395,8 +442,11 @@ async function openItem(x, push = true) {
   if (scene) scene.traverse(o => { if (o.isMesh && o.geometry && !o.geometry.isShared) o.geometry.dispose(); });
   const built = buildScene(meta, bin);
   scene = built.sc;
-  const arrs = d => d ? {P: new Float32Array(bin, d.pos[0], d.pos[1]), Q: new Float32Array(bin, d.quat[0], d.quat[1])} : null;
-  rec = {meta, bodies: built.bodies, P: new Float32Array(bin, meta.pos[0], meta.pos[1]),
+  const idxOf = d => new Map(d.moving.map((b, k) => [b, k]));
+  const arrs = d => d ? {P: new Float32Array(bin, d.pos[0], d.pos[1]), Q: new Float32Array(bin, d.quat[0], d.quat[1]), idx: idxOf(d)} : null;
+  rec = {meta, bodies: built.bodies, idx: idxOf(meta),
+         diffBodies: (meta.plan ? meta.plan.moving : []).filter(b => built.bodies[b] && built.bodies[b].children.length),
+         P: new Float32Array(bin, meta.pos[0], meta.pos[1]),
          Q: new Float32Array(bin, meta.quat[0], meta.quat[1]), tracks: {plan: arrs(meta.plan), isaac: arrs(meta.isaac)}};
   setMode(mode); frame(scene, built.sun);
   $("loading").hidden = true;
