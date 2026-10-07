@@ -371,9 +371,14 @@ function resultFor(x, m) {
     const is = x.isaac || {};
     if (!is.supported) return ["check", "준비 중", is.reason || "Isaac Sim 결과가 아직 없어요."];
     const ok = is.max_joint_err_deg < 1.0;
+    const over = is.over_speed || [];
+    const fmt = (o) => `${o.joint} ${o.plan} ${o.unit} (한계 ${o.limit})`;
     return [ok ? "good" : "check", ok ? "잘 따라가요" : "차이 확인 필요",
       `Isaac Sim(PhysX)에서 같은 계획을 따라가게 했더니 관절 각도 차이가 최대 ${is.max_joint_err_deg}°였어요.` +
-      (ok ? "" : " 로봇 모델의 무게·모터 정보가 실제와 다를 수 있어요.")];
+      (is.mobile ? " 이동하는 몸체(차량·몸통·드론)는 botrail 경로대로 옮기고, 팔·다리·리프트는 물리로 계산했어요." : "") +
+      (is.spin_excluded ? " 계속 도는 바퀴·프로펠러는 차이 계산에서 뺐어요." : "") +
+      (over.length ? ` botrail 계획이 관절 속도 한계를 넘어요: ${over.slice(0, 3).map(fmt).join(", ")}. Isaac은 이 한계를 지켜서 뒤처지고, MuJoCo 모델에는 속도 한계가 없어서 따라가요.`
+        : (ok ? "" : " 로봇 모델의 무게·모터 정보가 실제와 다를 수 있어요."))];
   }
   return [x.level, x.label, x.summary];
 }
@@ -413,7 +418,9 @@ function details(x) {
   const d = x.detail, parts = [];
   parts.push(`<div><h4>추종 정확도</h4><ul><li>계획 경로와의 차이: 평균 <span class="mono">${d.mean_tcp_err_mm} mm</span>, 최대 <span class="mono">${d.max_tcp_err_mm} mm</span></li>` +
     `<li>사이클 <span class="mono">${x.cycle_s.toFixed(1)}초</span> · 로봇 ${x.robots}대${x.mobile ? " · 이동 로봇 포함" : ""} · 재생 ${x.fps}fps</li></ul></div>`);
-  if (x.isaac) parts.push(`<div><h4>Isaac Sim</h4><ul><li>${x.isaac.supported ? `관절 각도 차이 최대 <span class="mono">${x.isaac.max_joint_err_deg}°</span> (PhysX, 120 Hz)` : esc(x.isaac.reason)}</li></ul></div>`);
+  if (x.isaac) parts.push(`<div><h4>Isaac Sim</h4><ul><li>${x.isaac.supported ? `관절 각도 차이 최대 <span class="mono">${x.isaac.max_joint_err_deg}°</span> (PhysX, 120 Hz)` : esc(x.isaac.reason)}</li>` +
+    (x.isaac.mobile ? `<li>이동 베이스: botrail 경로로 옮김, 관절만 물리 계산</li>` : "") +
+    (x.isaac.over_speed || []).map(o => `<li>속도 한계 초과: <span class="mono">${esc(o.joint)}</span> 계획 ${o.plan} ${esc(o.unit)} · 한계 ${o.limit}</li>`).join("") + `</ul></div>`);
   const coll = Object.entries(d.collisions || {});
   if (coll.length) parts.push(`<div><h4>겹친 곳</h4><ul>${coll.map(([k, v]) => `<li>${esc(k)} — <span class="mono">${v.max_depth_mm} mm</span>, ${v.t.slice(0, 3).join(", ")}초</li>`).join("")}</ul></div>`);
   const tq = Object.entries(d.torque || {}).flatMap(([r, js]) => Object.entries(js).map(([j, v]) => [r, j, v])).sort((a, b) => b[2].ratio - a[2].ratio).slice(0, 4);
