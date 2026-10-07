@@ -239,7 +239,7 @@ import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-const BUILD = "20261008021938";  // 배포 때 바뀜 → 브라우저·CDN 캐시에 남은 옛 데이터를 쓰지 않게
+const BUILD = "20261008040046";  // 배포 때 바뀜 → 브라우저·CDN 캐시에 남은 옛 데이터를 쓰지 않게
 const INDEX = await fetch(`data/index.json?v=${BUILD}`, {cache: "no-cache"}).then(r => r.json());
 const HIDE_CAT = new Set(["그리핑", "셀 엔지니어링", "강화학습", "Export"]);  // DM 용: 공정과 거리 먼 카테고리 숨김
 const items = INDEX.items.filter(x => !HIDE_CAT.has(x.category)), ready = items.filter(x => x.ready);
@@ -496,10 +496,10 @@ function updateDiff(i, a) {
   const on = $("diffOn").checked && mode !== "botrail" && rec.meta.plan;
   $("legend").hidden = mode === "botrail" || !rec.meta.plan;
   if (!rec.meta.plan || mode === "botrail") { colour(null); return; }
-  const tr = track(mode), plan = rec.meta.plan;
+  const trk = track(mode), plan = rec.meta.plan;  // 지역 변수 trk(트랙): i18n 함수 tr 과 이름 겹치면 tr("..") 가 깨진다
   let worst = 0; const per = {};
   for (const b of rec.diffBodies) {
-    const pe = bodyPos(tr.d, tr.P, tr.idx, b, i, a), pp = bodyPos(plan, rec.tracks.plan.P, rec.tracks.plan.idx, b, i, a);
+    const pe = bodyPos(trk.d, trk.P, trk.idx, b, i, a), pp = bodyPos(plan, rec.tracks.plan.P, rec.tracks.plan.idx, b, i, a);
     if (!pe || !pp) continue;
     const dist = Math.hypot(pe[0] - pp[0], pe[1] - pp[1], pe[2] - pp[2]);
     per[b] = dist; if (dist > worst) worst = dist;
@@ -532,8 +532,8 @@ function showTime() {
 function pose() {
   if (view3d && rec) {
     const [i, a] = frameIndex(rec.meta.t);
-    const tr = track(mode);
-    applyTrack(rec.bodies, tr.d.moving, tr.P, tr.Q, i, a);
+    const trk = track(mode);
+    applyTrack(rec.bodies, trk.d.moving, trk.P, trk.Q, i, a);
     updateDiff(i, a);
   }
   showTime();
