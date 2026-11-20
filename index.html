@@ -157,7 +157,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
       <button data-lang="ko">한국어</button><button data-lang="en">EN</button><button data-lang="ja">日本語</button>
     </div>
     <h1 data-i18n="h1">botrail 셀 → MuJoCo · Isaac 어댑터</h1>
-    <p data-i18n="sub">botrail 계획 궤적을 두 물리엔진(MuJoCo · Isaac Sim/PhysX)으로 재현 · 교차검증 — botrail 예제 38셀, TCP 추종오차 대부분 1&nbsp;mm 미만. 엔진 버튼으로 같은 셀을 botrail 스튜디오 / MuJoCo / Isaac 화면에서 비교하세요.</p>
+    <p data-i18n="sub">botrail 계획 궤적을 두 물리엔진(MuJoCo · Isaac Sim/PhysX)으로 재현 · 교차검증 — 여러 botrail 예제, TCP 추종오차 대부분 1&nbsp;mm 미만. 엔진 버튼으로 같은 셀을 botrail 스튜디오 / MuJoCo / Isaac 화면에서 비교하세요.</p>
     <div class="stats" id="stats"></div>
   </header>
   <section class="exp" aria-label="실험 항목">
@@ -169,7 +169,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
     <div><b data-i18n="e6t">파라미터 실험</b><span data-i18n="e6d">페이로드 · 적분 dt · 토크 한계 on/off (CLI)</span></div>
   </section>
   <main id="rows" style="display:flex;flex-direction:column;gap:26px"></main>
-  <footer><a href="https://github.com/Dan22dongwon/botrail-mujoco-adapter" target="_blank" data-i18n="code">코드 (GitHub)</a> · <span data-i18n="foot"><code>botrail-mujoco</code> (비공식 어댑터) · 셀 설계·계획 궤적은 botrail, 물리 재현·교차검증은 본 어댑터 · 원본 셀: botrail 0.13 예제 · MuJoCo 1 kHz · Isaac Sim/PhysX ≈120 Hz</span></footer>
+  <footer><a href="https://github.com/Dan22dongwon/botrail-mujoco-adapter" target="_blank" data-i18n="code">코드 (GitHub)</a> · <span data-i18n="foot"><code>botrail-mujoco</code> (비공식 어댑터) · 셀 설계·계획 궤적은 botrail, 물리 재현·교차검증은 본 어댑터 · 원본 셀: botrail 0.13·0.15 예제 · MuJoCo 1 kHz · Isaac Sim/PhysX ≈120 Hz</span></footer>
 </div>
 
 <section class="player" id="player" hidden aria-label="3D 재생">
@@ -242,9 +242,9 @@ import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-const BUILD = "20261012211014";  // 배포 때 바뀜 → 브라우저·CDN 캐시에 남은 옛 데이터를 쓰지 않게
+const BUILD = "20261120125205";  // 배포 때 바뀜 → 브라우저·CDN 캐시에 남은 옛 데이터를 쓰지 않게
 const INDEX = await fetch(`data/index.json?v=${BUILD}`, {cache: "no-cache"}).then(r => r.json());
-const HIDE_CAT = new Set(["그리핑", "셀 엔지니어링", "강화학습", "Export"]);  // DM 용: 공정과 거리 먼 카테고리 숨김
+const HIDE_CAT = new Set(["그리핑", "강화학습", "Export"]);  // 새 배선·공압 경로 셀을 포함한 셀 엔지니어링 표시
 const HIDE_ID = new Set(["spindle_mounting_demo", "spot_gun_mounting_demo", "physics_conveyor"]);  // 검증·테스트 성격 셀 숨김 (사용자 요청)
 const items = INDEX.items.filter(x => !HIDE_CAT.has(x.category) && !HIDE_ID.has(x.id)), ready = items.filter(x => x.ready);
 const CATS = INDEX.categories.filter(c => !HIDE_CAT.has(c));
@@ -255,7 +255,7 @@ const I18N = {
   ko: { st_cells: "botrail 셀", st_mj: "MuJoCo 재현", st_pass: "PASS", st_isaac: "Isaac 교차검증" },  // data-i18n HTML 은 원문(ORIG) 사용
   en: {
     h1: "botrail cell → MuJoCo · Isaac adapter",
-    sub: "Replays botrail's planned trajectories on two physics engines (MuJoCo · Isaac Sim/PhysX) and cross-validates them — 38 botrail examples, TCP tracking error mostly under 1&nbsp;mm. Use the engine buttons to compare the same cell in botrail Studio / MuJoCo / Isaac.",
+    sub: "Replays botrail's planned trajectories on two physics engines (MuJoCo · Isaac Sim/PhysX) and cross-validates them — botrail examples, TCP tracking error mostly under 1&nbsp;mm. Use the engine buttons to compare the same cell in botrail Studio / MuJoCo / Isaac.",
     e1t: "Trajectory tracking", e1d: "TCP & joint tracking error (plan vs dynamics)",
     e2t: "Collision detection", e2d: "Link/tool/workpiece contacts, penetration depth & time",
     e3t: "Actuation limits", e3d: "Joint torque demand vs rating, speed-limit violations",
@@ -263,12 +263,12 @@ const I18N = {
     e5t: "Model defects", e5d: "Missing mass/inertia, placeholder torque limits",
     e6t: "Parameter experiments", e6d: "Payload · integration dt · torque limits on/off (CLI)",
     code: "Code (GitHub)",
-    foot: "<code>botrail-mujoco</code> (unofficial adapter) · cell design & planned trajectory by botrail, physics replay & cross-validation by this adapter · source cells: botrail 0.13 examples · MuJoCo 1 kHz · Isaac Sim/PhysX ≈120 Hz",
+    foot: "<code>botrail-mujoco</code> (unofficial adapter) · cell design & planned trajectory by botrail, physics replay & cross-validation by this adapter · source cells: botrail 0.13 and 0.15 examples · MuJoCo 1 kHz · Isaac Sim/PhysX ≈120 Hz",
     st_cells: "botrail cells", st_mj: "MuJoCo replay", st_pass: "PASS", st_isaac: "Isaac cross-check",
   },
   ja: {
     h1: "botrail セル → MuJoCo・Isaac アダプター",
-    sub: "botrail の計画軌道を2つの物理エンジン（MuJoCo・Isaac Sim/PhysX）で再現・相互検証 — botrail サンプル38セル、TCP追従誤差はほぼ1&nbsp;mm未満。エンジンボタンで同じセルを botrail スタジオ / MuJoCo / Isaac で比較できます。",
+    sub: "botrail の計画軌道を2つの物理エンジン（MuJoCo・Isaac Sim/PhysX）で再現・相互検証 — botrail サンプル、TCP追従誤差はほぼ1&nbsp;mm未満。エンジンボタンで同じセルを botrail スタジオ / MuJoCo / Isaac で比較できます。",
     e1t: "軌道追従", e1d: "TCP・関節の追従誤差（計画 vs 動力学）",
     e2t: "干渉検出", e2d: "リンク・ツール・ワークの接触、侵入深さ・時刻",
     e3t: "駆動限界", e3d: "関節トルク要求/定格、速度限界の超過",
@@ -276,7 +276,7 @@ const I18N = {
     e5t: "モデルの不備", e5d: "質量・慣性の欠落、プレースホルダのトルク限界",
     e6t: "パラメータ実験", e6d: "ペイロード・積分dt・トルク限界 on/off（CLI）",
     code: "コード (GitHub)",
-    foot: "<code>botrail-mujoco</code>（非公式アダプター）· セル設計・計画軌道は botrail、物理再現・相互検証は本アダプター · 元セル: botrail 0.13 サンプル · MuJoCo 1 kHz · Isaac Sim/PhysX ≈120 Hz",
+    foot: "<code>botrail-mujoco</code>（非公式アダプター）· セル設計・計画軌道は botrail、物理再現・相互検証は本アダプター · 元セル: botrail 0.13・0.15 サンプル · MuJoCo 1 kHz · Isaac Sim/PhysX ≈120 Hz",
     st_cells: "botrail セル", st_mj: "MuJoCo 再現", st_pass: "PASS", st_isaac: "Isaac 相互検証",
   },
 };
