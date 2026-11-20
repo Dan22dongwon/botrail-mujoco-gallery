@@ -159,6 +159,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
     <h1 data-i18n="h1">botrail 셀 → MuJoCo · Isaac 어댑터</h1>
     <p data-i18n="sub">botrail 계획 궤적을 두 물리엔진(MuJoCo · Isaac Sim/PhysX)으로 재현 · 교차검증 — 여러 botrail 예제, TCP 추종오차 대부분 1&nbsp;mm 미만. 엔진 버튼으로 같은 셀을 botrail 스튜디오 / MuJoCo / Isaac 화면에서 비교하세요.</p>
     <div class="stats" id="stats"></div>
+    <p><a href="cutrail/" style="color:var(--accent);font-weight:600">새 예제: cutrail 가공 형상 비교 →</a></p>
   </header>
   <section class="exp" aria-label="실험 항목">
     <div><b data-i18n="e1t">궤적 추종</b><span data-i18n="e1d">TCP·관절 추종오차 (계획 vs 동역학)</span></div>
@@ -242,7 +243,7 @@ import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-const BUILD = "20261120161840";  // 배포 때 바뀜 → 브라우저·CDN 캐시에 남은 옛 데이터를 쓰지 않게
+const BUILD = "20261120220354";  // 배포 때 바뀜 → 브라우저·CDN 캐시에 남은 옛 데이터를 쓰지 않게
 const INDEX = await fetch(`data/index.json?v=${BUILD}`, {cache: "no-cache"}).then(r => r.json());
 const HIDE_CAT = new Set(["그리핑", "강화학습", "Export"]);  // 새 배선·공압 경로 셀을 포함한 셀 엔지니어링 표시
 const HIDE_ID = new Set(["spindle_mounting_demo", "spot_gun_mounting_demo", "physics_conveyor"]);  // 검증·테스트 성격 셀 숨김 (사용자 요청)
