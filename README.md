@@ -3,7 +3,7 @@
 **https://dan22dongwon.github.io/botrail-mujoco-gallery/**
 
 [botrail](https://github.com/botrail/botrail)로 설계한 로봇 공정 셀(머신텐딩, 가공, 조립, 용접, 도장, 팔레타이징,
-물류·이동 로봇, 보행 로봇, 케이블·공압 호스 경로 설계 등)을 [MuJoCo](https://mujoco.org) 물리 엔진에서 다시 돌린 결과를 브라우저에서 3D로 봅니다.
+물류·이동 로봇, 보행 로봇, 케이블·공압 호스 경로 설계, 다중 이동로봇 협동 운반 등)을 [MuJoCo](https://mujoco.org) 물리 엔진에서 다시 돌린 결과를 브라우저에서 3D로 봅니다.
 
 - 카드를 누르면 3D로 재생 (드래그 회전, 휠·두 손가락 확대)
 - **botrail 계획 / MuJoCo 물리 / 겹쳐 보기** 를 바꿔 가며 계획과 물리 결과의 차이를 비교
@@ -13,7 +13,7 @@
 
 ## 출처와 라이선스
 
-- 원본 셀: botrail 0.13 및 0.15 예제. 케이블·호스 형상은 botrail 영상에 표시되며 MuJoCo·Isaac 영상은 로봇 운동을 비교합니다. botrail 은 PolyForm Noncommercial / Small Business 라이선스(상용 라이선스 별도)이며,
+- 원본 셀: botrail 0.13 및 0.15 예제. 케이블·호스 형상은 botrail 영상에 표시되며 MuJoCo·Isaac 영상은 로봇 운동을 비교합니다. 협동 운반의 이동 베이스는 계획 경로를 재생하며 차량 동역학을 검증한 결과가 아닙니다. botrail 은 PolyForm Noncommercial / Small Business 라이선스(상용 라이선스 별도)이며,
   이 갤러리는 그 예제를 시뮬레이션한 결과를 **비상업적 공유 목적**으로 보여 줍니다.
 - 물리 엔진: MuJoCo (Apache-2.0). 3D 표시: three.js (MIT).
 - 재생 데이터는 보기용으로 줄였습니다 (초당 10프레임, 메쉬 3 mm 단순화).
