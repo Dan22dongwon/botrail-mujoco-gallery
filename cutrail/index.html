@@ -22,9 +22,9 @@ canvas{display:block}.labels{position:absolute;top:12px;left:0;right:0;display:f
 <a href="../">← 갤러리</a>
 <h1>cutrail 절삭 형상 비교</h1>
 <p>Botrail 0.15의 계획 절삭 형상과 MuJoCo가 기록한 공구 궤적을 cutrail로 재가공한 형상입니다. 마우스로 회전·확대할 수 있습니다.</p>
-<div class="metrics"><div><b>10,826 mm³</b><span>Botrail 계획 제거량</span></div><div><b id="removed">3,148 mm³</b><span>MuJoCo 궤적 제거량</span></div><div><b id="excess">7,678 mm³</b><span>계획 대비 남은 소재</span></div></div>
+<div class="metrics"><div><b>10,826 mm³</b><span>Botrail 계획 제거량</span></div><div><b>3,148 mm³</b><span>MuJoCo 궤적 제거량</span></div><div><b>7,678 mm³</b><span>계획 대비 남은 소재</span></div></div>
 <div class="viewer" id="viewer"><div class="labels"><span>계획 · Botrail</span><span>물리 기록 · MuJoCo</span></div></div>
-<p class="note">이 비교는 연결 예제입니다. 실측 궤적은 spindle_run이 켜진 구간만 처리합니다. 급속/이송 구분은 없고 공구 지름도 계획 8 mm, 물리 기록 재가공 6 mm로 달라, 차이를 가공 불량으로 판정할 수 없습니다. 절삭력·열·공구 마모는 계산하지 않습니다.</p>
+<p class="note">이 비교는 연결 예제입니다. 물리 기록에 스핀들 상태가 없고 공구 지름도 계획 8 mm, 물리 기록 재가공 6 mm로 달라, 차이를 가공 불량으로 판정할 수 없습니다. 절삭력·열·공구 마모는 계산하지 않습니다.</p>
 <p class="error" id="error" hidden>3D 모델을 불러오지 못했습니다. 페이지를 새로고침해 주세요.</p>
 </main>
 <script type="module">
@@ -32,7 +32,6 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 import {OrbitControls} from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 import {STLLoader} from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/STLLoader.js';
 import {OBJLoader} from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/OBJLoader.js';
-fetch('machining_cut.json').then(r=>r.json()).then(d=>{for(const [id,key] of [['removed','removed_mm3'],['excess','excess_mm3']])document.getElementById(id).textContent=Number(d.cutrail[key]).toLocaleString('ko-KR',{maximumFractionDigits:0})+' mm³';}).catch(()=>{});
 const host=document.getElementById('viewer');
 const scene=new THREE.Scene();scene.background=new THREE.Color('#17232d');
 const camera=new THREE.PerspectiveCamera(42,1,1,2000);camera.position.set(0,-490,290);camera.up.set(0,0,1);
