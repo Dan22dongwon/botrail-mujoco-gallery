@@ -1,0 +1,63 @@
+{
+  "source": "out/upstream/machining__machining_demo/mj/web.json",
+  "tool_body": "cutter",
+  "stock_body": "world",
+  "stock_offset_m": [
+    0.47999926,
+    0.0,
+    0.2739998
+  ],
+  "reference": "out/cutrail/planned_cut.stl",
+  "reference_unit": "m",
+  "tip_offset_m": [
+    0.0,
+    0.0,
+    0.0969
+  ],
+  "tool_axis": [
+    0.0,
+    0.0,
+    -1.0
+  ],
+  "stock_box_m": [
+    -0.09,
+    -0.06,
+    -0.006,
+    0.09,
+    0.06,
+    0.006
+  ],
+  "samples": 2946,
+  "recorded_frames": 3005,
+  "cut_signal": "spindle_run",
+  "all_motion": false,
+  "cutting_intervals": [
+    [
+      0.5,
+      97.65
+    ]
+  ],
+  "cutrail": {
+    "min_distance": "0.5",
+    "min_angle": "2",
+    "max_deviation": "0",
+    "tile": "0",
+    "batch": "1",
+    "samples": "2947",
+    "segments": "1544",
+    "calls": "1544",
+    "updated": "1338",
+    "total_s": "18.972",
+    "cut_s": "18.968",
+    "mean_ms": "12.285",
+    "p50_ms": "15.669",
+    "p90_ms": "20.539",
+    "max_ms": "39.466",
+    "triangles": "57658",
+    "parts": "1",
+    "removed_mm3": "3148.399",
+    "excess_mm3": "7677.7802",
+    "gouge_mm3": "0.0000"
+  },
+  "limitations": "geometry-only; poses interpolated at signal boundaries; spindle gating does not classify rapid/feed; no cutting force, deflection, or thermal effects"
+}

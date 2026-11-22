@@ -1,0 +1,135 @@
+{
+  "machine": "vf2/axes",
+  "stock": "part",
+  "initial_volume": 9.6e-05,
+  "removed_volume": 2.325343550013689e-06,
+  "remaining_volume": 9.367465644998631e-05,
+  "issues": [],
+  "lines": [
+    [
+      "op10",
+      18,
+      1,
+      1.8006582768038784e-07
+    ],
+    [
+      "op10",
+      20,
+      1,
+      1.6e-07
+    ],
+    [
+      "op10",
+      22,
+      1,
+      1.6000000000008733e-07
+    ],
+    [
+      "op10",
+      24,
+      1,
+      1.6000000000011642e-07
+    ],
+    [
+      "op10",
+      26,
+      1,
+      1.3993417231965578e-07
+    ],
+    [
+      "op10",
+      31,
+      1,
+      2.353571945205622e-07
+    ],
+    [
+      "op10",
+      32,
+      1,
+      1.4905233474991111e-07
+    ],
+    [
+      "op10",
+      33,
+      1,
+      5.533814451598446e-07
+    ],
+    [
+      "op10",
+      48,
+      2,
+      1.4688814389573234e-07
+    ],
+    [
+      "op10",
+      49,
+      2,
+      1.4688814389581966e-07
+    ],
+    [
+      "op10",
+      50,
+      2,
+      1.4688814389573234e-07
+    ],
+    [
+      "op10",
+      51,
+      2,
+      1.4688814389583422e-07
+    ]
+  ],
+  "cut_span": [
+    7.8,
+    65.64542948355309
+  ],
+  "tools": [
+    [
+      1,
+      4.2,
+      39.7425678774919
+    ],
+    [
+      2,
+      39.7425678774919,
+      89.15
+    ]
+  ],
+  "changes": [
+    [
+      1,
+      0.0,
+      4.2
+    ],
+    [
+      2,
+      35.5425678774919,
+      39.7425678774919
+    ],
+    [
+      1,
+      88.14,
+      92.34
+    ]
+  ],
+  "unbodied": [],
+  "tolerance": 5e-05,
+  "excess_volume": 0.0,
+  "gouge_volume": 0.0,
+  "excess_bounds": null,
+  "gouge_bounds": null,
+  "source": "botrail planned timeline",
+  "units": {
+    "length": "m",
+    "volume": "m3",
+    "time": "s"
+  },
+  "by_tool": {
+    "1": 1.7377909744305653e-06,
+    "2": 5.875525755831186e-07
+  },
+  "ok": true,
+  "summary": "part on vf2/axes: 2.33 cm³ removed of 96.00 (T1 1.74, T2 0.59)\nthe part is the design within ±0.05 mm",
+  "limitations": "Planned geometry only; not a MuJoCo measurement. No cutting forces, deflection, chatter or thermal effects.",
+  "mesh": "nc_vf2_axes__part.obj"
+}

@@ -115,6 +115,10 @@ footer code{font-family:var(--mono);font-size:11.5px}
 @media (max-width:560px){.time{display:none}.diffbox{font-size:12px}}
 @media (prefers-reduced-motion:reduce){.card{transition:none}.card:hover{transform:none}}
 
+.io-monitor{font-size:12px;color:var(--ink-2)}
+.io-monitor summary{cursor:pointer}.io-monitor p{margin:6px 0}.io-values{display:flex;flex-wrap:wrap;gap:5px 12px;max-height:100px;overflow:auto;margin-top:6px}
+.io-values span{font-family:var(--mono);font-size:11px}.io-values b{color:var(--ink)}.io-values .on{color:var(--good)}
+.xr-status{font-size:11px;color:var(--ink-2);max-width:180px}.xr-status:empty{display:none}
 /* 제안서 */
 .propbtn{border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:999px;padding:7px 14px;font:inherit;font-size:13.5px;cursor:pointer;flex:none}
 .proposal{position:fixed;inset:0;z-index:30;background:var(--bg);overflow:auto}
@@ -159,7 +163,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
     <h1 data-i18n="h1">botrail 셀 → MuJoCo · Isaac 어댑터</h1>
     <p data-i18n="sub">botrail 계획 궤적을 두 물리엔진(MuJoCo · Isaac Sim/PhysX)으로 재현 · 교차검증 — 여러 botrail 예제, TCP 추종오차 대부분 1&nbsp;mm 미만. 엔진 버튼으로 같은 셀을 botrail 스튜디오 / MuJoCo / Isaac 화면에서 비교하세요.</p>
     <div class="stats" id="stats"></div>
-    <p><a href="cutrail/" style="color:var(--accent);font-weight:600">새 예제: cutrail 가공 형상 비교 →</a></p>
+    <p><a href="nc/" style="color:var(--accent);font-weight:600">NC 가공 · VF-2 셋업 비교 →</a> · <a href="cutrail/" style="color:var(--accent);font-weight:600">새 예제: cutrail 가공 형상 비교 →</a></p>
   </header>
   <section class="exp" aria-label="실험 항목">
     <div><b data-i18n="e1t">궤적 추종</b><span data-i18n="e1d">TCP·관절 추종오차 (계획 vs 동역학)</span></div>
@@ -183,6 +187,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
       <button data-m="isaac">Isaac Sim</button>
     </div>
     <button class="v3d" id="v3d" aria-pressed="false" title="인터랙티브 3D · 계획 대비 편차 히트맵" data-i18n="p_3d">3D 분석</button>
+    <button class="v3d" id="xrEnter" disabled title="3D 분석에서 VR 헤드셋으로 보기">VR 보기</button><span class="xr-status" id="xrStatus" role="status"></span>
     <button class="propbtn" id="propOpen" title="사이클타임·처리량·ROI 제안서 (링크 공유·PDF)" hidden>제안서</button>
   </div>
   <div class="stage" id="stage">
@@ -208,6 +213,7 @@ footer code{font-family:var(--mono);font-size:11.5px}
       <span class="diffnow" id="diffNow"></span>
       <span><i style="background:#39a6ff"></i>1–5 mm</span><span><i style="background:#ff8a1f"></i>5–20 mm</span><span><i style="background:#e23a2e"></i>20 mm 이상</span>
     </div>
+    <details class="io-monitor" id="ioMonitor" hidden><summary>기록된 I/O · 시퀀스</summary><p>botrail 타임라인 재생 · PLC 실시간 연결 아님</p><div id="ioSteps"></div><div class="io-values" id="ioValues"></div></details>
     <details class="more" id="more"><summary data-i18n="p_more">상세 지표</summary><div class="box" id="moreBox"></div></details>
   </div>
 </section>
@@ -243,7 +249,7 @@ import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-const BUILD = "20261120220354";  // 배포 때 바뀜 → 브라우저·CDN 캐시에 남은 옛 데이터를 쓰지 않게
+const BUILD = "1795379593416";  // 배포 때 바뀜 → 브라우저·CDN 캐시에 남은 옛 데이터를 쓰지 않게
 const INDEX = await fetch(`data/index.json?v=${BUILD}`, {cache: "no-cache"}).then(r => r.json());
 const HIDE_CAT = new Set(["그리핑", "강화학습", "Export"]);  // 새 배선·공압 경로 셀을 포함한 셀 엔지니어링 표시
 const HIDE_ID = new Set(["spindle_mounting_demo", "spot_gun_mounting_demo", "physics_conveyor"]);  // 검증·테스트 성격 셀 숨김 (사용자 요청)
@@ -386,11 +392,14 @@ const canvas = $("c");
 const renderer = new THREE.WebGLRenderer({canvas, antialias: true});
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
+renderer.xr.enabled = true;
+renderer.xr.setReferenceSpaceType("local-floor");
 const camera = new THREE.PerspectiveCamera(36, 1, 0.02, 400);
 camera.up.set(0, 0, 1);
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
 let scene = null, rec = null, t = 0, playing = false, speed = 1, last = performance.now(), loadToken = 0;
+let processMeta = null, xrSession = null, xrSupported = false, xrBusy = false, xrSaved = null, xrWorld = null;
 let mode = "botrail";
 try { mode = localStorage.getItem("engine") || "botrail"; } catch {}
 { const qe = new URLSearchParams(location.search).get("eng"); if (["botrail","mujoco","isaac"].includes(qe)) mode = qe; }  // ?eng=mujoco (live_engines)
@@ -532,10 +541,31 @@ function duration() {
   if (view3d && rec) return rec.meta.t.at(-1);
   return cur?.video_s || (isFinite(vid.duration) ? vid.duration : 0) || cur?.cycle_s || 0;
 }
+function trackValue(events, at) {
+  let value = null;
+  for (const [time, next] of events || []) { if (time > at) break; value = next; }
+  return value;
+}
+function updateProcess() {
+  const proc = processMeta?.process;
+  const entries = value => Array.isArray(value) ? value : Object.entries(value || {});
+  const signals = entries(proc?.signals), words = entries(proc?.words);
+  $("ioMonitor").hidden = !processMeta || (!signals.length && !words.length && !processMeta.steps?.length);
+  const active = (processMeta?.steps || []).filter(([, a, b]) => t >= a && t < b).map(([name]) => name);
+  $("ioSteps").textContent = active.length ? "진행 단계: " + active.join(" · ") : "진행 단계: —";
+  $("ioValues").innerHTML = signals.map(([name, events]) => {
+    const value = trackValue(events, t);
+    return '<span>' + esc(name) + ' <b class="' + (value ? 'on' : '') + '">' + (value === null ? '—' : value ? 'ON' : 'OFF') + '</b></span>';
+  }).concat(words.map(([name, events]) => {
+    const value = trackValue(events, t);
+    return '<span>' + esc(name) + ' <b>' + (value === null ? '—' : esc(Number(value.toFixed(3)))) + '</b></span>';
+  })).join("");
+}
 function showTime() {
   const end = duration() || 1;
   $("time").textContent = `${t.toFixed(1)} / ${end.toFixed(1)} s`;
   $("seek").value = Math.round(Math.min(t / end, 1) * 1000);
+  updateProcess();
 }
 function pose() {
   if (view3d && rec) {
@@ -579,7 +609,10 @@ function resultFor(x, m) {
   return [x.level, labelTr(x.label), `${tr("dt_tcpavg")} ${x.detail.mean_tcp_err_mm} / ${tr("dt_max")} ${x.detail.max_tcp_err_mm} mm · ${tr("l_coll")} ${nc}`];
 }
 function setMode(m) {
-  if (!available(m)) m = ["botrail", "mujoco", "isaac"].find(available) || "botrail";
+  if (view3d) {
+    const hasTrack = m === "mujoco" || (m === "botrail" && rec?.meta.plan) || (m === "isaac" && rec?.meta.isaac);
+    if (!hasTrack) m = "mujoco";
+  } else if (!available(m)) m = ["botrail", "mujoco", "isaac"].find(available) || "botrail";
   const changed = m !== mode || vid.dataset.item !== cur?.id;
   mode = m;
   try { localStorage.setItem("engine", m); } catch {}
@@ -603,6 +636,7 @@ function setMode(m) {
   pose();
 }
 async function set3D(on) {
+  if (!on && xrSession) await xrSession.end();
   if (on && !cur?.ready) return;
   view3d = on;
   $("v3d").setAttribute("aria-pressed", String(on));
@@ -610,6 +644,7 @@ async function set3D(on) {
   if (on) { vid.pause(); if (!rec) await loadData(cur); }
   else { vid.dataset.item = ""; }
   setMode(mode);
+  updateXRButton();
   if (!on && playing) vid.play().catch(() => {});
 }
 $("v3d").onclick = () => set3D(!view3d);
@@ -640,6 +675,7 @@ function details(x) {
   const tq = Object.entries(d.torque || {}).flatMap(([r, js]) => Object.entries(js).map(([j, v]) => [r, j, v])).sort((a, b) => b[2].ratio - a[2].ratio).slice(0, 4);
   if (tq.length) parts.push(`<div><h4>${tr("dt_torque")}</h4><ul>${tq.map(([r, j, v]) => `<li>${esc(r)} ${esc(j)}: <span class="mono">${Math.round(v.ratio * 100)}%</span></li>`).join("")}</ul></div>`);
   if (d.warnings?.length) parts.push(`<div><h4>${tr("dt_warn")}</h4><ul>${d.warnings.map(w => `<li>${esc(w)}</li>`).join("")}</ul></div>`);
+  if (x.id === "vf2_tending_demo") parts.push('<div><a href="nc/">NC 셋업·설계 형상 비교 →</a></div>');
   parts.push(`<div class="mono" style="font-size:12px">${esc(x.example)}</div>`);
   return parts.join("");
 }
@@ -653,7 +689,9 @@ async function openItem(x, push = true) {
   document.body.style.overflow = "hidden";
   if (push) { try { history.pushState({id: x.id}, "", "#" + x.id); pushed = true; } catch {} }
   $("pTitle").textContent = x.title; $("pCat").textContent = catName(x.category);
-  cur = x; rec = null; t = 0; setPlaying(false);
+  if (xrSession) await xrSession.end();
+  cur = x; rec = null; processMeta = null; t = 0; setPlaying(false); updateProcess();
+  if (x.ready) fetch(x.data + ".json?v=" + BUILD).then(r => r.json()).then(meta => { if (cur === x) { processMeta = meta; updateProcess(); } }).catch(() => {});
   $("moreBox").innerHTML = x.ready ? details(x) : `<div>${esc(x.reason)}</div><div class="mono" style="font-size:12px">${esc(x.example)}</div>`;
   $("more").open = false;
   $("v3d").disabled = !x.ready;
@@ -672,7 +710,7 @@ async function loadData(x) {  // 3D 분석용 바디 포즈 (처음 켤 때만)
   if (token !== loadToken || cur !== x) return;
   if (scene) scene.traverse(o => { if (o.isMesh && o.geometry && !o.geometry.isShared) o.geometry.dispose(); });
   const built = buildScene(meta, bin);
-  scene = built.sc;
+  scene = built.sc; processMeta = meta; updateProcess();
   const idxOf = d => new Map(d.moving.map((b, k) => [b, k]));
   const arrs = d => d ? {P: new Float32Array(bin, d.pos[0], d.pos[1]), Q: new Float32Array(bin, d.quat[0], d.quat[1]), idx: idxOf(d)} : null;
   rec = {meta, bodies: built.bodies, idx: idxOf(meta),
@@ -680,9 +718,10 @@ async function loadData(x) {  // 3D 분석용 바디 포즈 (처음 켤 때만)
          P: new Float32Array(bin, meta.pos[0], meta.pos[1]),
          Q: new Float32Array(bin, meta.quat[0], meta.quat[1]), tracks: {plan: arrs(meta.plan), isaac: arrs(meta.isaac)}};
   resize(); frame(scene, built.sun);
-  $("loading").hidden = true;
+  $("loading").hidden = true; updateXRButton();
 }
 function hidePlayer() {
+  if (xrSession) xrSession.end();
   $("player").hidden = true; document.body.style.overflow = ""; setPlaying(false); loadToken++;
   vid.pause(); vid.removeAttribute("src"); vid.dataset.item = ""; cur = null;
 }
@@ -716,7 +755,69 @@ $("seek").oninput = () => {
 vid.addEventListener("ended", () => setPlaying(false));
 canvas.addEventListener("pointerdown", () => { $("hint").hidden = true; }, {once: false});
 
+// WebXR uses a Y-up room; replay bodies keep their original Z-up coordinates.
+function updateXRButton() {
+  $("xrEnter").disabled = xrBusy || (!xrSession && (!xrSupported || !view3d || !rec));
+  $("xrEnter").textContent = xrSession ? "VR 종료" : "VR 보기";
+  if (!xrSession && xrSupported) $("xrStatus").textContent = view3d ? "헤드셋 선택으로 재생·정지" : "3D 분석에서 VR 보기";
+}
+async function checkXR() {
+  if (!isSecureContext) { $("xrStatus").textContent = "VR은 HTTPS에서 사용할 수 있어요"; return; }
+  if (!navigator.xr) { $("xrStatus").textContent = "VR 헤드셋 브라우저에서 사용할 수 있어요"; return; }
+  try { xrSupported = await navigator.xr.isSessionSupported("immersive-vr"); }
+  catch { xrSupported = false; }
+  if (!xrSupported) $("xrStatus").textContent = "연결된 VR 헤드셋이 없어요";
+  updateXRButton();
+}
+function restoreXR() {
+  if (!xrSaved) return;
+  const saved = xrSaved; xrSaved = null;
+  saved.world.remove(saved.content); saved.rig.remove(camera);
+  camera.position.copy(saved.position); camera.quaternion.copy(saved.quaternion); camera.up.copy(saved.up);
+  controls.enabled = true; xrWorld = null; xrSession = null; xrBusy = false;
+  $("xrStatus").textContent = ""; updateXRButton(); resize();
+}
+$("xrEnter").onclick = async () => {
+  if (xrSession) { await xrSession.end(); return; }
+  if (!xrSupported || !view3d || !rec || xrBusy) return;
+  xrBusy = true; updateXRButton();
+  let session;
+  try {
+    // Called directly from the button gesture, with playback data already loaded.
+    session = await navigator.xr.requestSession("immersive-vr", {optionalFeatures: ["local-floor"]});
+    xrSession = session;
+    const world = new THREE.Scene(); world.background = scene.background;
+    const content = scene, root = new THREE.Group(), rig = new THREE.Group();
+    root.rotation.x = -Math.PI / 2; root.add(content); world.add(root); world.add(rig);
+    const center = controls.target, distance = Math.max(1.5, camera.position.distanceTo(center));
+    xrSaved = {world: root, content, rig, position: camera.position.clone(), quaternion: camera.quaternion.clone(), up: camera.up.clone()};
+    rig.position.set(center.x, Math.max(0, center.z - 0.8), -center.y + distance);
+    camera.position.set(0, 0, 0); camera.quaternion.identity(); camera.up.set(0, 1, 0); rig.add(camera);
+    controls.enabled = false; xrWorld = world;
+    for (let i = 0; i < 2; i++) {
+      const controller = renderer.xr.getController(i); rig.add(controller);
+      controller.addEventListener("select", toggleXRPlayback);
+    }
+    session.addEventListener("end", () => {
+      for (let i = 0; i < 2; i++) renderer.xr.getController(i).removeEventListener("select", toggleXRPlayback);
+      restoreXR();
+    }, {once: true});
+    await renderer.xr.setSession(session);
+    xrBusy = false; $("xrStatus").textContent = "헤드셋 선택으로 재생·정지"; updateXRButton();
+  } catch (error) {
+    if (session) { try { await session.end(); } catch {} }
+    restoreXR(); xrBusy = false; xrSession = null; updateXRButton();
+    $("xrStatus").textContent = error.name === "NotAllowedError" ? "VR 시작이 취소됐어요" : "VR을 시작하지 못했어요";
+  }
+};
+function toggleXRPlayback() {
+  if (t >= duration() - 0.05) t = 0;
+  setPlaying(!playing);
+}
+checkXR();
+
 function resize() {
+  if (renderer.xr.isPresenting) return;
   const w = canvas.clientWidth || 1, h = canvas.clientHeight || 1;
   renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
 }
@@ -727,9 +828,9 @@ renderer.setAnimationLoop(now => {
   if ($("player").hidden) return;
   if (!view3d) { if (playing && !vid.seeking && vid.readyState >= 2) { t = vid.currentTime; showTime(); } return; }
   if (!scene) return;
-  if (canvas.width !== Math.round(canvas.clientWidth * renderer.getPixelRatio())) resize();
+  if (!renderer.xr.isPresenting && canvas.width !== Math.round(canvas.clientWidth * renderer.getPixelRatio())) resize();
   if (playing && rec) { t += dt * speed; const end = rec.meta.t.at(-1); if (t >= end) { t = end; setPlaying(false); } pose(); }
-  controls.update(); renderer.render(scene, camera);
+  if (!renderer.xr.isPresenting) controls.update(); renderer.render(xrWorld || scene, camera);
 });
 
 // ---------- 제안서: 사이클타임·처리량·ROI, 입력값은 링크(#id/proposal?…)에 ----------
